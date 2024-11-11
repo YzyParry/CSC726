@@ -1,0 +1,11 @@
+#!/bin/bash -l
+#SBATCH --partition=medium
+#SBATCH --tasks-per-node=44
+#SBATCH --time=00:10:00
+#SBATCH --nodes=4
+#SBATCH --job-name=pdgemv4
+#SBATCH --output=pdgemv4.%j.out
+#SBATCH --error=pdgemv4.%j.err
+
+# run code for 176 MPI processes 
+mpirun -n 176 ./a.out 17600 17600 11 16
