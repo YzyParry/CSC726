@@ -74,16 +74,53 @@ int main(int argc, char** argv) {
     double* xglobal = new double[nloc];
     double* yglobal = new double[mloc];
     // Communicate input vector entries
-    MPI_Allgather(xlocal, xdim, MPI_DOUBLE, xglobal, xdim, MPI_DOUBLE, row_comm);
+    MPI_Allgather(xlocal,xdim, MPI_DOUBLE, xglobal, xdim, MPI_DOUBLE, col_comm);
 
-    // Perform local matvec
+    if (rank==0){
+        for (int i=0;i<xdim;i++){
+        cout << xglobal[i] << " ";
+        }
+        cout << endl;
+    }
+
+    if (rank==0){
+        for (int i = 0; i < mloc; i++) {
+            for (int j=0; j < nloc; j++) {
+                cout << Alocal[i*nloc + j] << " ";
+            }
+            cout << endl;
+        }
+    }
+
+
     local_gemv(Alocal, xglobal, ylocal, mloc, nloc);
 
+    // cout << mloc << nloc << endl;
+
+    if (rank==0){
+        for (int i=0;i<mloc;i++){
+        cout << ylocal[i] << " ";
+        }
+        cout << endl;
+    }
+
     // Communicate output vector entries
-    MPI_Reduce(ylocal, yglobal, ydim, MPI_DOUBLE, MPI_SUM, 0, col_comm);
+    MPI_Reduce(ylocal, yglobal, mloc, MPI_DOUBLE, MPI_SUM, 0, row_comm);
+    // int * recvcounts[pr];
+    // for (int i=0;i<pr;i++) recvcounts[i]=ydim;
+    // MPI_Reduce_scatter(ylocal,yglobal,&recvcounts,MPI_DOUBLE,MPI_SUM,row_comm);
+    
+    // if (rank==0){
+    //     for (int i=0;i<mloc;i++){
+    //     cout << yglobal[i] << " ";
+    //     }
+    //     cout << endl;
+    // }
 
     // Redistribute the output vector to match input vector
-    MPI_Bcast(yglobal, ydim, MPI_DOUBLE, 0, row_comm);
+    MPI_Scatter(yglobal,ydim,MPI_DOUBLE,ylocal,ydim,MPI_DOUBLE,0,row_comm);
+
+    // MPI_Reduce_scatter()
 
     // Stop timer
     MPI_Barrier(MPI_COMM_WORLD);
@@ -119,6 +156,8 @@ int main(int argc, char** argv) {
     delete [] ylocal;
     delete [] xlocal;
     delete [] Alocal;
+    delete [] xglobal;
+    delete [] yglobal;
     MPI_Comm_free(&row_comm);
     MPI_Comm_free(&col_comm);
     MPI_Finalize();
