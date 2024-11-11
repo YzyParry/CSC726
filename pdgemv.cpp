@@ -71,25 +71,31 @@ int main(int argc, char** argv) {
     // start timer
     double time, start = MPI_Wtime();
 
+    double* xglobal = new double[nloc];
+    double* yglobal = new double[mloc];
     // Communicate input vector entries
+    MPI_Allgather(xlocal, xdim, MPI_DOUBLE, xglobal, xdim, MPI_DOUBLE, row_comm);
 
     // Perform local matvec
+    local_gemv(Alocal, xglobal, ylocal, mloc, nloc);
 
     // Communicate output vector entries
+    MPI_Reduce(ylocal, yglobal, ydim, MPI_DOUBLE, MPI_SUM, 0, col_comm);
 
     // Redistribute the output vector to match input vector
-    
+    MPI_Bcast(yglobal, ydim, MPI_DOUBLE, 0, row_comm);
+
     // Stop timer
     MPI_Barrier(MPI_COMM_WORLD);
     time = MPI_Wtime() - start;
 
     // Print results for debugging
     if(DEBUG) {
-        cout << "Proc (" << ranki << "," << rankj << ") started with x values\n";
+        cout << "\nProc (" << ranki << "," << rankj << ") started with x values\n";
         for(int j = 0; j < xdim; j++) {
             cout << xlocal[j] << " ";
         }
-        cout << "\n the local matrix: \n";
+        cout << "\nProc (" << ranki << "," << rankj << ") has local matrix\n";
         for (int i = 0; i < mloc; i++) {
             for (int j=0; j < nloc; j++) {
                 cout << Alocal[i*nloc + j] << " ";
@@ -97,7 +103,7 @@ int main(int argc, char** argv) {
             cout << endl;
         }
 
-        cout << "\nand ended with y values\n";
+        cout << "Proc (" << ranki << "," << rankj << ") ended with y values\n";
         for(int i = 0; i < ydim; i++) {
             cout << ylocal[i] << " ";
         }
