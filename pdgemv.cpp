@@ -98,10 +98,10 @@ int main(int argc, char** argv) {
     // cout << mloc << nloc << endl;
 
 
-    for (int i=0;i<mloc;i++){
-        cout << "Rank" << rank << " " << ylocal[i] << " ";
-    }
-    cout << endl;
+    // for (int i=0;i<mloc;i++){
+    //     cout << "Rank" << rank << " " << ylocal[i] << " ";
+    // }
+    // cout << endl;
 
     // Communicate output vector entries
     MPI_Reduce(ylocal, yglobal, mloc, MPI_DOUBLE, MPI_SUM, 0, row_comm);
@@ -125,35 +125,53 @@ int main(int argc, char** argv) {
 
     // Redistribute the output vector to match input vector
     MPI_Scatter(yglobal,ydim,MPI_DOUBLE,ylocal,ydim,MPI_DOUBLE,0,row_comm);
+
     MPI_Barrier(MPI_COMM_WORLD);
-    // pr * (sender % pc) + (sender / pc) = receiver
-    int receiver = pr * (rank % pc) + (rank / pc);
+    if (rank<6) {
+        cout << "\nRank " << rank << "Proc (" << ranki << "," << rankj << ") started with y values\n";
+        for(int i = 0; i < ydim; i++) {
+            cout << ylocal[i] << " ";
+        }
+    }
+    
+
+    int receiver = pc * (rank % pr) + (rank / pr);
+    int sender = pr * (rank % pc) + (rank / pc);
     MPI_Sendrecv(ylocal, ydim, MPI_DOUBLE, receiver, 0, 
-                 ylocal, ydim, MPI_DOUBLE, rank, 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                 yglobal, ydim, MPI_DOUBLE, sender, 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
     // Stop timer
     MPI_Barrier(MPI_COMM_WORLD);
+
+    if (rank<6) {
+        cout << "\nproc" << rank << " send to " << receiver << " and rec from " << sender << endl;
+        cout << "\nRank " << rank << "Proc (" << ranki << "," << rankj << ") ended with y values\n";
+        for(int i = 0; i < ydim; i++) {
+            cout << yglobal[i] << " ";
+        }
+    }
+
     time = MPI_Wtime() - start;
 
     // Print results for debugging
     if(DEBUG) {
-        cout << "\nRank " << rank << " Proc (" << ranki << "," << rankj << ") started with x values\n";
-        for(int j = 0; j < xdim; j++) {
-            cout << xlocal[j] << " ";
-        }
+        // cout << "\nRank " << rank << " Proc (" << ranki << "," << rankj << ") started with x values\n";
+        // for(int j = 0; j < xdim; j++) {
+        //     cout << xlocal[j] << " ";
+        // }
 
-        cout << "\nProc (" << ranki << "," << rankj << ") has local matrix\n";
-        for (int i = 0; i < mloc; i++) {
-            for (int j=0; j < nloc; j++) {
-                cout << Alocal[j*mloc + i] << " ";
-            }
-            cout << endl;
-        }
+        // cout << "\nProc (" << ranki << "," << rankj << ") has local matrix\n";
+        // for (int i = 0; i < mloc; i++) {
+        //     for (int j=0; j < nloc; j++) {
+        //         cout << Alocal[j*mloc + i] << " ";
+        //     }
+        //     cout << endl;
+        // }
         
-        cout << "\nRank " << rank << "Proc (" << ranki << "," << rankj << ") ended with y values\n";
-        for(int i = 0; i < ydim; i++) {
-            cout << ylocal[i] << " ";
-        }
+        // cout << "\nRank " << rank << "Proc (" << ranki << "," << rankj << ") ended with y values\n";
+        // for(int i = 0; i < ydim; i++) {
+        //     cout << yglobal[i] << " ";
+        // }
         cout << endl; // flush now
     }
 
