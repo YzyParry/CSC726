@@ -76,33 +76,32 @@ int main(int argc, char** argv) {
     // Communicate input vector entries
     MPI_Allgather(xlocal,xdim, MPI_DOUBLE, xglobal, xdim, MPI_DOUBLE, col_comm);
 
-    if (rank==0){
-        for (int i=0;i<xdim;i++){
-        cout << xglobal[i] << " ";
-        }
-        cout << endl;
-    }
+    // if (rank==0){
+    //     for (int i=0;i<xdim;i++){
+    //     cout << xglobal[i] << " ";
+    //     }
+    //     cout << endl;
+    // }
 
-    if (rank==0){
-        for (int i = 0; i < mloc; i++) {
-            for (int j=0; j < nloc; j++) {
-                cout << Alocal[i*nloc + j] << " ";
-            }
-            cout << endl;
-        }
-    }
+    // if (rank==0){
+    //     for (int i = 0; i < mloc; i++) {
+    //         for (int j=0; j < nloc; j++) {
+    //             cout << Alocal[i*nloc + j] << " ";
+    //         }
+    //         cout << endl;
+    //     }
+    // }
 
 
     local_gemv(Alocal, xglobal, ylocal, mloc, nloc);
 
     // cout << mloc << nloc << endl;
 
-    if (rank==0){
-        for (int i=0;i<mloc;i++){
-        cout << ylocal[i] << " ";
-        }
-        cout << endl;
+
+    for (int i=0;i<mloc;i++){
+        cout << "Rank" << rank << " " << ylocal[i] << " ";
     }
+    cout << endl;
 
     // Communicate output vector entries
     MPI_Reduce(ylocal, yglobal, mloc, MPI_DOUBLE, MPI_SUM, 0, row_comm);
@@ -111,7 +110,14 @@ int main(int argc, char** argv) {
     // MPI_Reduce_scatter(ylocal,yglobal,&recvcounts,MPI_DOUBLE,MPI_SUM,row_comm);
     
     // if (rank==0){
-    //     for (int i=0;i<mloc;i++){
+    //     for (int i=0;i<pr;i++){
+    //     cout << yglobal[i] << " ";
+    //     }
+    //     cout << endl;
+    // }
+
+    // if (rank==1){
+    //     for (int i=0;i<pr;i++){
     //     cout << yglobal[i] << " ";
     //     }
     //     cout << endl;
@@ -119,6 +125,7 @@ int main(int argc, char** argv) {
 
     // Redistribute the output vector to match input vector
     MPI_Scatter(yglobal,ydim,MPI_DOUBLE,ylocal,ydim,MPI_DOUBLE,0,row_comm);
+    
 
     // MPI_Reduce_scatter()
 
@@ -128,19 +135,20 @@ int main(int argc, char** argv) {
 
     // Print results for debugging
     if(DEBUG) {
-        cout << "\nProc (" << ranki << "," << rankj << ") started with x values\n";
+        cout << "\nRank " << rank << " Proc (" << ranki << "," << rankj << ") started with x values\n";
         for(int j = 0; j < xdim; j++) {
             cout << xlocal[j] << " ";
         }
+
         cout << "\nProc (" << ranki << "," << rankj << ") has local matrix\n";
         for (int i = 0; i < mloc; i++) {
             for (int j=0; j < nloc; j++) {
-                cout << Alocal[i*nloc + j] << " ";
+                cout << Alocal[j*mloc + i] << " ";
             }
             cout << endl;
         }
-
-        cout << "Proc (" << ranki << "," << rankj << ") ended with y values\n";
+        
+        cout << "\nRank " << rank << "Proc (" << ranki << "," << rankj << ") ended with y values\n";
         for(int i = 0; i < ydim; i++) {
             cout << ylocal[i] << " ";
         }
