@@ -125,9 +125,11 @@ int main(int argc, char** argv) {
 
     // Redistribute the output vector to match input vector
     MPI_Scatter(yglobal,ydim,MPI_DOUBLE,ylocal,ydim,MPI_DOUBLE,0,row_comm);
-    
-
-    // MPI_Reduce_scatter()
+    MPI_Barrier(MPI_COMM_WORLD);
+    // pr * (sender % pc) + (sender / pc) = receiver
+    int receiver = pr * (rank % pc) + (rank / pc);
+    MPI_Sendrecv(ylocal, ydim, MPI_DOUBLE, receiver, 0, 
+                 ylocal, ydim, MPI_DOUBLE, rank, 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
     // Stop timer
     MPI_Barrier(MPI_COMM_WORLD);
