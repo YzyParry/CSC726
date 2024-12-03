@@ -4,7 +4,7 @@
 #include <mpi.h>
 using namespace std;
 
-const bool DEBUG = true;
+const bool DEBUG = false;
 
 // initialize matrix and vectors (A is mxn, x is xn-vec)
 void init_rand(double* a, int m, int n, double* x, int xn);
@@ -86,66 +86,16 @@ int main(int argc, char** argv) {
     double* yglobal = new double[mloc];
     // Communicate input vector entries
     MPI_Allgather(xlocal,xdim, MPI_DOUBLE, xglobal, xdim, MPI_DOUBLE, col_comm);
-
-    // if (rank==0){
-    //     for (int i=0;i<xdim;i++){
-    //     cout << xglobal[i] << " ";
-    //     }
-    //     cout << endl;
-    // }
-
-    // if (rank==0){
-    //     for (int i = 0; i < mloc; i++) {
-    //         for (int j=0; j < nloc; j++) {
-    //             cout << Alocal[i*nloc + j] << " ";
-    //         }
-    //         cout << endl;
-    //     }
-    // }
-
-
+  
+    // Local computation
     local_gemv(Alocal, xglobal, ylocal, mloc, nloc);
-
-    // cout << mloc << nloc << endl;
-
-
-    // for (int i=0;i<mloc;i++){
-    //     cout << "Rank" << rank << " " << ylocal[i] << " ";
-    // }
-    // cout << endl;
 
     // Communicate output vector entries
     MPI_Reduce(ylocal, yglobal, mloc, MPI_DOUBLE, MPI_SUM, 0, row_comm);
-    // int * recvcounts[pr];
-    // for (int i=0;i<pr;i++) recvcounts[i]=ydim;
-    // MPI_Reduce_scatter(ylocal,yglobal,&recvcounts,MPI_DOUBLE,MPI_SUM,row_comm);
-    
-    // if (rank==0){
-    //     for (int i=0;i<pr;i++){
-    //     cout << yglobal[i] << " ";
-    //     }
-    //     cout << endl;
-    // }
-
-    // if (rank==1){
-    //     for (int i=0;i<pr;i++){
-    //     cout << yglobal[i] << " ";
-    //     }
-    //     cout << endl;
-    // }
+    MPI_Scatter(yglobal,ydim,MPI_DOUBLE,ylocal,ydim,MPI_DOUBLE,0,row_comm);
+    MPI_Barrier(MPI_COMM_WORLD);
 
     // Redistribute the output vector to match input vector
-    MPI_Scatter(yglobal,ydim,MPI_DOUBLE,ylocal,ydim,MPI_DOUBLE,0,row_comm);
-
-    MPI_Barrier(MPI_COMM_WORLD);
-    // if (rank<6) {
-    //     cout << "\nRank " << rank << "Proc (" << ranki << "," << rankj << ") started with y values\n";
-    //     for(int i = 0; i < ydim; i++) {
-    //         cout << ylocal[i] << " ";
-    //     }
-    // }
-    
-
     int receiver = pc * (rank % pr) + (rank / pr);
     int sender = pr * (rank % pc) + (rank / pc);
     MPI_Sendrecv(ylocal, ydim, MPI_DOUBLE, receiver, 0, 
@@ -153,15 +103,6 @@ int main(int argc, char** argv) {
 
     // Stop timer
     MPI_Barrier(MPI_COMM_WORLD);
-
-    // if (rank<6) {
-    //     cout << "\nproc" << rank << " send to " << receiver << " and rec from " << sender << endl;
-    //     cout << "\nRank " << rank << "Proc (" << ranki << "," << rankj << ") ended with y values\n";
-    //     for(int i = 0; i < ydim; i++) {
-    //         cout << yglobal[i] << " ";
-    //     }
-    // }
-
     time = MPI_Wtime() - start;
 
     // Print results for debugging
