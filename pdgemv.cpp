@@ -4,7 +4,7 @@
 #include <mpi.h>
 using namespace std;
 
-const bool DEBUG = true;
+const bool DEBUG = false;
 
 // initialize matrix and vectors (A is mxn, x is xn-vec)
 void init_rand(double* a, int m, int n, double* x, int xn);
