@@ -4,7 +4,7 @@
 #include <mpi.h>
 using namespace std;
 
-const bool DEBUG = false;
+const bool DEBUG = true;
 
 // initialize matrix and vectors (A is mxn, x is xn-vec)
 void init_rand(double* a, int m, int n, double* x, int xn);
@@ -41,6 +41,7 @@ int main(int argc, char** argv) {
         return 1;
     }
     if(m % pr || n % pc || m % nProcs || n % nProcs) {
+        cout << m % pr << n % pc << m % nProcs << n % nProcs << endl;
         cerr << "Processor grid doesn't divide rows and columns evenly" << endl;
         return 1;
     }
@@ -86,20 +87,29 @@ int main(int argc, char** argv) {
     double* yglobal = new double[mloc];
     // Communicate input vector entries
     MPI_Allgather(xlocal,xdim, MPI_DOUBLE, xglobal, xdim, MPI_DOUBLE, col_comm);
-  
+    
     // Local computation
-    local_gemv(Alocal, xglobal, ylocal, mloc, nloc);
+    double compute_start = MPI_Wtime();
+    local_gemv(Alocal, xglobal, yglobal, mloc, nloc);
+    MPI_Barrier(MPI_COMM_WORLD);
+    double compute = MPI_Wtime() - compute_start;
 
     // Communicate output vector entries
-    MPI_Reduce(ylocal, yglobal, mloc, MPI_DOUBLE, MPI_SUM, 0, row_comm);
-    MPI_Scatter(yglobal,ydim,MPI_DOUBLE,ylocal,ydim,MPI_DOUBLE,0,row_comm);
+    // MPI_Reduce(ylocal, yglobal, mloc, MPI_DOUBLE, MPI_SUM, 0, row_comm);
+    // MPI_Scatter(yglobal,ydim,MPI_DOUBLE,ylocal,ydim,MPI_DOUBLE,0,row_comm);
+    int recvcounts[pc]; // Number of processes in row_comm is pc
+    for (int i = 0; i < pc; i++) {
+        recvcounts[i] = ydim; // Each process will receive ydim elements
+    }
+    MPI_Reduce_scatter(yglobal, ylocal, recvcounts, MPI_DOUBLE, MPI_SUM, row_comm);
+
     MPI_Barrier(MPI_COMM_WORLD);
 
     // Redistribute the output vector to match input vector
     int receiver = pc * (rank % pr) + (rank / pr);
     int sender = pr * (rank % pc) + (rank / pc);
     MPI_Sendrecv(ylocal, ydim, MPI_DOUBLE, receiver, 0, 
-                 yglobal, ydim, MPI_DOUBLE, sender, 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                 ylocal, ydim, MPI_DOUBLE, sender, 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
     // Stop timer
     MPI_Barrier(MPI_COMM_WORLD);
@@ -112,17 +122,17 @@ int main(int argc, char** argv) {
             cout << xlocal[j] << " ";
         }
 
-        cout << "\nProc (" << ranki << "," << rankj << ") has local matrix\n";
-        for (int i = 0; i < mloc; i++) {
-            for (int j=0; j < nloc; j++) {
-                cout << Alocal[j*mloc + i] << " ";
-            }
-            cout << endl;
-        }
+        // cout << "\nProc (" << ranki << "," << rankj << ") has local matrix\n";
+        // for (int i = 0; i < mloc; i++) {
+        //     for (int j=0; j < nloc; j++) {
+        //         cout << Alocal[j*mloc + i] << " ";
+        //     }
+        //     cout << endl;
+        // }
         
         cout << "\nRank " << rank << "Proc (" << ranki << "," << rankj << ") ended with y values\n";
         for(int i = 0; i < ydim; i++) {
-            cout << yglobal[i] << " ";
+            cout << ylocal[i] << " ";
         }
         cout << endl; // flush now
     }
@@ -130,6 +140,8 @@ int main(int argc, char** argv) {
     // Print time
     if(!rank) {
         cout << "Time elapsed: " << time << " seconds" << endl;
+        cout << "local computation: " << compute << " seconds" << endl;
+        cout << "communication: " << time - compute << " seconds" << endl;
     }
 
     // Clean up
