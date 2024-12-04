@@ -40,6 +40,7 @@ int main(int argc, char** argv) {
     // step 1: 0->4
     // step 2: 0->2, 4->6
     // step 3: 0->1, 2->3, 4->5, 6->7
+    start = MPI_Wtime();
     int data_size;
     if (rank == 0) {
         data_size = global_data_size;
@@ -68,6 +69,12 @@ int main(int argc, char** argv) {
         }
     }
     memcpy(localdata, global_data, local_data_size * sizeof(double));
+
+    time = MPI_Wtime() - start;
+    if (rank == 0) {
+        cout << "My_Scatter: " << time << " seconds" << endl;
+    }
+
 
     // MPI_Scatter() verifies the correctness
     start = MPI_Wtime();
