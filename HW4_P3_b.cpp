@@ -1,4 +1,4 @@
-// Homework 4 problem 3 question (a)
+// Homework 4 problem 3 question (b)
 // Implement the butterfly recursive doubling algorithm for All-Gather.
 
 #include <iostream>
@@ -7,8 +7,8 @@
 #include <mpi.h>
 using namespace std;
 
-const bool PRINT = true;
-const bool CHECK = false;
+const bool PRINT = false;
+const bool CHECK = true;
 
 int main(int argc, char** argv) {
     MPI_Init(NULL, NULL);
