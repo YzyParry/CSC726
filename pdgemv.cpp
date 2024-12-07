@@ -142,6 +142,7 @@ int main(int argc, char** argv) {
         cout << "Time elapsed: " << time << " seconds" << endl;
         cout << "local computation: " << compute << " seconds" << endl;
         cout << "communication: " << time - compute << " seconds" << endl;
+        cout << "Computation Percentage: " << compute / time  << endl;
     }
 
     // Clean up

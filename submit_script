@@ -1,11 +1,21 @@
-#!/bin/bash -l
-#SBATCH --partition=medium
-#SBATCH --tasks-per-node=44
-#SBATCH --time=00:10:00
-#SBATCH --nodes=4
-#SBATCH --job-name=pdgemv4
-#SBATCH --output=pdgemv4.%j.out
-#SBATCH --error=pdgemv4.%j.err
+#!/bin/bash
+#SBATCH --job-name="hw4prob3"    # Name that appears in queue
+#SBATCH --partition=small          # Resource group (small/large)
+#SBATCH --account=csc726           # SLURM account
+#SBATCH --nodes=1                  # Number of Nodes
+#SBATCH --ntasks-per-node=44       # Number of CPU Cores
+#SBATCH --mem=128gb                # Requested memory
+#SBATCH --time=00-00:30:00         # Job duration in DD-HH:MM:SS
+#SBATCH --mail-user=yangz223@wfu.edu
+#SBATCH --mail-type=END,FAIL       # Updates to provide mail-user
 
-# run code for 176 MPI processes 
-mpirun -n 176 ./a.out 17600 17600 11 16
+# Load your software
+module load compilers/gcc/12.3.0
+module load mpi/openmpi/4.1.6
+
+# Go to working directory
+cd /deac/csc/classes/csc726/${USER}/1106Wed
+
+# Execute your program
+
+mpirun -n 32 hw4b 16777216
